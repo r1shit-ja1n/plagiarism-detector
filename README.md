@@ -1,5 +1,7 @@
 # 🕵️‍♂️ High-Performance Plagiarism Detector
 
+> **Live Demo:** [Try out the live plagiarism detector here!](https://plagiarism-detector-vvilr9urpzxam4e2x2pnwv.streamlit.app/)
+
 An advanced C++ plagiarism detection engine with a Streamlit UI.
 
 ## 📖 Overview
@@ -22,8 +24,8 @@ Most open-source plagiarism detectors are written purely in Python. While Python
 
 ## 🧠 Core Algorithms Implemented
 The C++ engine mathematically analyzes text overlap using the following techniques:
-* **Jaccard Similarity (N-Grams):** Chunks text into sliding windows of N words and calculates the exact intersection over union, effectively catching paraphrased plagiarism.
-* **Knuth-Morris-Pratt (KMP):** Utilizes Longest Proper Prefix (LPS) tables to skip redundant string comparisons for O(N+M) exact block-match detection.
+* **Jaccard Similarity (N-Grams):** Chunks text into sliding windows of *N* words and calculates the exact intersection over union, effectively catching paraphrased plagiarism.
+* **Knuth-Morris-Pratt (KMP):** Utilizes Longest Proper Prefix (LPS) tables to skip redundant string comparisons for O(N + M) exact block-match detection.
 * **Rabin-Karp:** Deploys rolling polynomial hashes to instantly detect exact copied phrases in O(1) window sliding time.
 * **Longest Common Subsequence (LCS):** Uses Dynamic Programming (DP) to find the longest shared sequence of words even if they are interrupted by new, inserted text.
 
@@ -48,3 +50,17 @@ Ensure you have a C++ compiler (like `g++`) and Python installed on your system.
 ```bash
 git clone [https://github.com/r1shit-ja1n/plagiarism-detector.git](https://github.com/r1shit-ja1n/plagiarism-detector.git)
 cd plagiarism-detector
+3. Compile the C++ Engine
+Compile the backend code into an executable with maximum speed optimization (-O3):
+
+Bash
+g++ -O3 main.cpp -o plagcheck
+4. Install Frontend Requirements
+Bash
+pip install streamlit
+5. Launch the Web App
+Bash
+streamlit run app.py
+The UI will automatically open in your browser at http://localhost:8501.
+
+Built with C++ and Python by Rishit Jain
