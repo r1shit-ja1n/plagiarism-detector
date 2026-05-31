@@ -1,4 +1,4 @@
-# 🕵️‍♂️ Plagiarism Detector
+# 🕵️‍♂️ High-Performance Plagiarism Detector
 
 An advanced C++ plagiarism detection engine with a Streamlit UI.
 
@@ -22,10 +22,17 @@ Most open-source plagiarism detectors are written purely in Python. While Python
 
 ## 🧠 Core Algorithms Implemented
 The C++ engine mathematically analyzes text overlap using the following techniques:
-* **Jaccard Similarity (N-Grams):** Chunks text into sliding windows of $N$ words and calculates the exact intersection over union, effectively catching paraphrased plagiarism.
-* **Knuth-Morris-Pratt (KMP):** Utilizes Longest Proper Prefix (LPS) tables to skip redundant string comparisons for $O(N+M)$ exact block-match detection.
-* **Rabin-Karp:** Deploys rolling polynomial hashes to instantly detect exact copied phrases in $O(1)$ window sliding time.
+* **Jaccard Similarity (N-Grams):** Chunks text into sliding windows of N words and calculates the exact intersection over union, effectively catching paraphrased plagiarism.
+* **Knuth-Morris-Pratt (KMP):** Utilizes Longest Proper Prefix (LPS) tables to skip redundant string comparisons for O(N+M) exact block-match detection.
+* **Rabin-Karp:** Deploys rolling polynomial hashes to instantly detect exact copied phrases in O(1) window sliding time.
 * **Longest Common Subsequence (LCS):** Uses Dynamic Programming (DP) to find the longest shared sequence of words even if they are interrupted by new, inserted text.
+
+> ### ⚠️ System Limitations & Future Scope
+> While highly optimized for structural text matching, this engine operates within specific boundaries:
+> * **Lexical, Not Semantic:** Because the engine relies on deterministic computer science algorithms (not LLMs or vector embeddings), it cannot detect deeply paraphrased text where complete synonyms are used with no structural overlap.
+> * **Closed-Environment Matching:** The tool compares explicitly provided documents (Document A vs. Document B). It does not actively crawl the live internet to find external sources.
+> * **Format Constraints:** Currently, the Streamlit pipeline only processes `.txt` files or raw text input. Natively parsing `.pdf` or `.docx` requires third-party parsing integrations.
+> * **Cross-Lingual Plagiarism:** The system evaluates identical byte-characters and words. It cannot detect translated plagiarism (e.g., an English article translated directly into Spanish).
 
 ## 💻 Tech Stack
 * **Backend Engine:** C++17 (Standard Template Library)
