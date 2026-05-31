@@ -65,14 +65,14 @@ struct Settings {
 
     void print() const {
         std::cout << Color::CYAN << "----- Current Settings -----\n" << Color::RESET;
-        std::cout << "  N-gram size           : " << ngram_size << "\n";
-        std::cout << "  Preferred algorithm   : " << algorithmName(preferred_algorithm) << "\n";
-        std::cout << "  Low threshold (%)     : " << low_threshold << "\n";
-        std::cout << "  High threshold (%)    : " << high_threshold << "\n";
-        std::cout << "  Use ANSI color        : " << (use_color ? "yes" : "no") << "\n";
-        std::cout << "  Remove stopwords      : " << (remove_stopwords ? "yes" : "no") << "\n";
-        std::cout << "  Verbose mode          : " << (verbose ? "yes" : "no") << "\n";
-        std::cout << "  Report filename       : " << report_filename << "\n";
+        std::cout << "  N-gram size            : " << ngram_size << "\n";
+        std::cout << "  Preferred algorithm    : " << algorithmName(preferred_algorithm) << "\n";
+        std::cout << "  Low threshold (%)      : " << low_threshold << "\n";
+        std::cout << "  High threshold (%)     : " << high_threshold << "\n";
+        std::cout << "  Use ANSI color         : " << (use_color ? "yes" : "no") << "\n";
+        std::cout << "  Remove stopwords       : " << (remove_stopwords ? "yes" : "no") << "\n";
+        std::cout << "  Verbose mode           : " << (verbose ? "yes" : "no") << "\n";
+        std::cout << "  Report filename        : " << report_filename << "\n";
         std::cout << Color::CYAN << "----------------------------\n" << Color::RESET;
     }
 };
@@ -704,7 +704,7 @@ namespace Stage7 {
                   << "+--------------------------------------------------------"
                      "------------------------------------+\n"
                   << "| Algorithm    |  Score (%)  |  Time (us)  |  Matches  |"
-                     "  LCS Len  |  Notes                  |\n"
+                     "  LCS Len  |  Notes                   |\n"
                   << "+--------------+-------------+-------------+-----------+"
                      "-----------+-------------------------+\n"
                   << Color::RESET;
@@ -1159,25 +1159,127 @@ static void printMenu() {
     std::cout << "  0) Exit\n";
 }
 
-int main() {
+// ===========================================================================
+// MAIN EXECUTION
+// ===========================================================================
+int main(int argc, char* argv[]) {
     Settings cfg;
+
+    // ---------------------------------------------------------------------
+    // MODE A: Streamlit full-arg mode  (7 arguments after program name)
+    // ---------------------------------------------------------------------
+    if (argc == 8) {
+        cfg.use_color = false;
+        cfg.verbose   = false;
+
+        try {
+            std::string fileA = argv[1];
+            std::string fileB = argv[2];
+            cfg.ngram_size      = std::max(1, std::min(8, std::atoi(argv[3])));
+            std::string algoStr = argv[4];
+            cfg.low_threshold   = std::atof(argv[5]);
+            cfg.high_threshold  = std::atof(argv[6]);
+            cfg.remove_stopwords = (std::atoi(argv[7]) != 0);
+
+            // Normalize algorithm string
+            std::transform(algoStr.begin(), algoStr.end(), algoStr.begin(),
+                           [](unsigned char c){ return std::toupper(c); });
+            if      (algoStr == "KMP") cfg.preferred_algorithm = Algorithm::KMP;
+            else if (algoStr == "RK" || algoStr == "RABIN-KARP" || algoStr == "RABIN_KARP")
+                                       cfg.preferred_algorithm = Algorithm::RABIN_KARP;
+            else if (algoStr == "LCS") cfg.preferred_algorithm = Algorithm::LCS;
+            else                       cfg.preferred_algorithm = Algorithm::ALL;
+
+            std::string a = Stage2::readFileWhole(fileA);
+            std::string b = Stage2::readFileWhole(fileB);
+
+            // To always show per-algorithm breakdown in the UI,
+            // run ALL three regardless, but mark which was "preferred".
+            Settings runCfg = cfg;
+            runCfg.preferred_algorithm = Algorithm::ALL;
+            auto results = Engine::run(a, b, runCfg);
+
+            double kmpScore = 0, rkScore = 0, lcsScore = 0;
+            long long kmpTime = 0, rkTime = 0, lcsTime = 0;
+            long long kmpMatches = 0, rkMatches = 0;
+            std::size_t lcsLen = 0;
+
+            for (const auto& r : results) {
+                if (r.algorithm == "KMP")        { kmpScore = r.score; kmpTime = r.time_us; kmpMatches = r.matches; }
+                else if (r.algorithm == "Rabin-Karp") { rkScore = r.score; rkTime = r.time_us; rkMatches = r.matches; }
+                else if (r.algorithm == "LCS")  { lcsScore = r.score; lcsTime = r.time_us; lcsLen = r.lcs_length; }
+            }
+
+            // Overall score honors the user's algorithm choice
+            double overall = 0.0;
+            switch (cfg.preferred_algorithm) {
+                case Algorithm::KMP:        overall = kmpScore; break;
+                case Algorithm::RABIN_KARP: overall = rkScore;  break;
+                case Algorithm::LCS:        overall = lcsScore; break;
+                case Algorithm::ALL:
+                default:                    overall = (kmpScore + rkScore + lcsScore) / 3.0; break;
+            }
+
+            std::string verdict =
+                (overall < cfg.low_threshold)   ? "LOW" :
+                (overall <= cfg.high_threshold) ? "MODERATE" : "HIGH";
+
+            std::cout << std::fixed << std::setprecision(4);
+            std::cout << "KMP="          << kmpScore  << "\n";
+            std::cout << "RK="           << rkScore   << "\n";
+            std::cout << "LCS="          << lcsScore  << "\n";
+            std::cout << "KMP_TIME_US="  << kmpTime   << "\n";
+            std::cout << "RK_TIME_US="   << rkTime    << "\n";
+            std::cout << "LCS_TIME_US="  << lcsTime   << "\n";
+            std::cout << "KMP_MATCHES="  << kmpMatches<< "\n";
+            std::cout << "RK_MATCHES="   << rkMatches << "\n";
+            std::cout << "LCS_LEN="      << lcsLen    << "\n";
+            std::cout << "VERDICT="      << verdict   << "\n";
+            std::cout << "OVERALL="      << overall   << std::endl;
+            return 0;
+        } catch (const std::exception& e) {
+            std::cerr << "ERROR: " << e.what() << std::endl;
+            std::cout << "OVERALL=0.0" << std::endl;
+            return 1;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // MODE B: Legacy 2-arg silent mode (kept for backward compatibility)
+    // ---------------------------------------------------------------------
+    if (argc == 3) {
+        cfg.use_color = false;
+        cfg.verbose   = false;
+        cfg.preferred_algorithm = Algorithm::ALL;
+        try {
+            std::string a = Stage2::readFileWhole(argv[1]);
+            std::string b = Stage2::readFileWhole(argv[2]);
+            auto results  = Engine::run(a, b, cfg);
+            std::cout << aggregateScore(results) << std::endl;
+            return 0;
+        } catch (...) {
+            std::cout << 0.0 << std::endl;
+            return 1;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // MODE C: Original interactive menu
+    // ---------------------------------------------------------------------
     printBanner();
     cfg.print();
-
     while (true) {
         printMenu();
         int choice = readInt("  > Choice: ", 0, 7);
         switch (choice) {
-            case 0:
-                std::cout << Color::BOLD << "Goodbye!\n" << Color::RESET;
-                return 0;
-            case 1: runFullTestSuite(cfg);                    break;
-            case 2: generateSampleReport(cfg);                break;
-            case 3: timeComparisonDemo(cfg);                  break;
-            case 4: demoStage1And3And4(cfg);                  break;
-            case 5: multiFileDemo(cfg);                       break;
-            case 6: compareTwoFilesFromDisk(cfg);             break;
-            case 7: settingsPanel(cfg);                       break;
+            case 0: std::cout << Color::BOLD << "Goodbye!\n" << Color::RESET; return 0;
+            case 1: runFullTestSuite(cfg);        break;
+            case 2: generateSampleReport(cfg);    break;
+            case 3: timeComparisonDemo(cfg);      break;
+            case 4: demoStage1And3And4(cfg);      break;
+            case 5: multiFileDemo(cfg);           break;
+            case 6: compareTwoFilesFromDisk(cfg); break;
+            case 7: settingsPanel(cfg);           break;
             default: break;
         }
     }
