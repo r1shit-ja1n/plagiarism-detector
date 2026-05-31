@@ -1,4 +1,4 @@
-# 🕵️‍♂️ High-Performance Plagiarism Detector
+# 🕵️‍♂️ Plagiarism Detector
 
 An advanced C++ plagiarism detection engine with a Streamlit UI.
 
